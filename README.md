@@ -24,3 +24,9 @@ Remplace `index.html` dans le dépôt, puis change `CACHE` dans `sw.js` (v1 en v
 
 - Les données restent sur le téléphone, dans l'app installée. Elles sont distinctes de celles du proto sur claude.ai.
 - Le dépôt étant public, le code est visible par tous. Il ne contient aucune donnée personnelle : tes réglages ne quittent pas le téléphone.
+
+## Versions
+
+- La version actuelle (V2) est à la racine : Batterie et Historique.
+- La V1 (avec Rouler et Réglages) reste disponible à l'adresse `.../charge/v1/`. Ses données sont séparées de celles de la V2.
+

@@ -1,0 +1,511 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Charge RX v1</title>
+<meta name="description" content="Temps de charge et autonomie de la Super73 RX, calés sur une charge mesurée.">
+<meta name="theme-color" content="#F2F2F7" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Charge RX">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<link rel="apple-touch-icon" href="../icons/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="192x192" href="../icons/icon-192.png">
+</head>
+<body>
+
+<style>
+:root{
+  --bg:#F2F2F7; --card:#FFFFFF; --label:#000000; --sec:#6C6C70; --sep:#E5E5EA; --fill:rgba(118,118,128,0.12);
+  --tint:#007AFF; --green:#34C759; --warn:#C4001A; --glass:rgba(255,255,255,0.72); --glass-b:rgba(255,255,255,0.7);
+  --track:#E3E3E8; --thumb:#FFFFFF; --seg-on:#FFFFFF;
+  color-scheme:light;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#000000; --card:#1C1C1E; --label:#FFFFFF; --sec:#98989F; --sep:#38383A; --fill:rgba(118,118,128,0.24);
+    --tint:#0A84FF; --green:#30D158; --warn:#FF6961; --glass:rgba(40,40,42,0.72); --glass-b:rgba(255,255,255,0.12);
+    --track:#39393D; --thumb:#FFFFFF; --seg-on:#636366; color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#000000; --card:#1C1C1E; --label:#FFFFFF; --sec:#98989F; --sep:#38383A; --fill:rgba(118,118,128,0.24);
+  --tint:#0A84FF; --green:#30D158; --warn:#FF6961; --glass:rgba(40,40,42,0.72); --glass-b:rgba(255,255,255,0.12);
+  --track:#39393D; --thumb:#FFFFFF; --seg-on:#636366; color-scheme:dark;
+}
+html,body{min-height:100%}
+[hidden]{display:none!important}
+body{margin:0;background:var(--bg);color:var(--label);font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Helvetica Neue",system-ui,sans-serif;font-size:17px;-webkit-font-smoothing:antialiased;-webkit-tap-highlight-color:transparent}
+.app{max-width:480px;margin:0 auto;padding-inline:16px;padding-block:8px 120px;display:flex;flex-direction:column}
+h1{margin:12px 0 4px;font-size:34px;line-height:41px;font-weight:700;letter-spacing:.37px}
+.h{padding:18px 16px 6px;font-size:13px;line-height:18px;color:var(--sec);text-transform:uppercase;letter-spacing:.02em}
+.f{padding:6px 16px 0;font-size:13px;line-height:18px;color:var(--sec)}
+.f.strong{color:var(--label)}
+.card{background:var(--card);border-radius:26px;overflow:hidden}
+.card>*+*{border-top:1px solid var(--sep);margin-left:16px;padding-left:0!important}
+.card>*+* .act,.card>*+* .earlier,.card>*+* .corr{padding-left:0}
+.row{min-height:48px;padding:0 16px;display:flex;align-items:center;justify-content:space-between;gap:12px}
+.row .v{color:var(--sec);display:flex;align-items:center;gap:8px}
+.n{font-variant-numeric:tabular-nums}
+.lvl{padding:12px 16px 12px;display:flex;flex-direction:column;gap:6px}
+.lvl .top{display:flex;justify-content:space-between;align-items:baseline;gap:12px}
+.lvl .big{font-size:30px;font-weight:700}
+.lvl.ask label,.lvl.ask .big{color:var(--tint)}
+.res{padding:12px 16px;display:flex;flex-direction:column;gap:2px}
+.res .big{font-size:34px;line-height:40px;font-weight:700;text-wrap:balance}
+.res .sub{font-size:15px;color:var(--sec)}
+.res .adv{font-size:15px;line-height:20px;padding-top:4px}
+.res .adv b{font-weight:600}
+.res.bad .big{color:var(--warn)}
+button,input,select{font:inherit;color:inherit}
+.act{display:flex;align-items:center;min-height:48px;padding:0 16px;width:100%;border:0;background:none;color:var(--tint);text-align:left;cursor:pointer}
+.act:disabled{color:var(--sec)}
+.card>*+*.act{border-top:1px solid var(--sep)}
+input[type=number]::-webkit-inner-spin-button,input[type=number]::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}
+.seg{display:flex;gap:2px;padding:2px;border-radius:999px;background:var(--fill);margin:8px 16px}
+.seg button{flex:1 1 0;height:32px;border:0;border-radius:999px;background:transparent;font-size:15px;cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--seg-on);font-weight:600;box-shadow:0 2px 6px rgba(0,0,0,.12)}
+.step{display:flex;align-items:center;background:var(--fill);border-radius:999px}
+.step button{border:0;background:none;width:46px;height:34px;display:flex;align-items:center;justify-content:center;cursor:pointer}
+.step span{width:1px;height:16px;background:var(--sep)}
+.step svg path{stroke:var(--label)}
+input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:30px;margin:0;background:transparent;--p:50%}
+input[type=range]::-webkit-slider-runnable-track{height:6px;border-radius:3px;background:linear-gradient(to right,var(--tint) var(--p),var(--track) var(--p))}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:38px;height:24px;margin-top:-9px;border-radius:12px;background:var(--thumb);box-shadow:0 .5px 4px rgba(0,0,0,.12),0 6px 13px rgba(0,0,0,.12)}
+input[type=range]::-moz-range-track{height:6px;border-radius:3px;background:var(--track)}
+input[type=range]::-moz-range-progress{height:6px;border-radius:3px;background:var(--tint)}
+input[type=range]::-moz-range-thumb{width:38px;height:24px;border:0;border-radius:12px;background:var(--thumb);box-shadow:0 2px 8px rgba(0,0,0,.2)}
+input[type=range]:disabled{opacity:.55}
+input[type=checkbox].sw{-webkit-appearance:none;appearance:none;position:relative;width:64px;height:28px;margin:0;border-radius:14px;background:var(--fill);flex-shrink:0;cursor:pointer;transition:background .2s}
+input[type=checkbox].sw:checked{background:var(--green)}
+input[type=checkbox].sw::before{content:"";position:absolute;top:2px;left:2px;width:39px;height:24px;border-radius:12px;background:#FFFFFF;box-shadow:0 3px 8px rgba(0,0,0,.15);transition:left .2s}
+input[type=checkbox].sw:checked::before{left:23px}
+select.menu{-webkit-appearance:none;appearance:none;border:0;background:none;color:var(--tint);text-align:right;padding:8px 0;cursor:pointer;max-width:190px}
+input.num,input[type=time],input.txt{border:0;background:var(--fill);border-radius:999px;padding:6px 12px;width:84px;text-align:right;font-size:17px;font-variant-numeric:tabular-nums}
+input.txt{width:150px;text-align:left}
+input[type=time]{width:auto}
+.bar{margin:0 16px 14px;height:6px;border-radius:3px;background:var(--track);overflow:hidden}
+.bar div{height:100%;background:var(--tint);width:0}
+.earlier{display:flex;gap:10px;align-items:center;padding:0 16px 12px}
+.earlier button{border:0;background:var(--tint);color:#fff;border-radius:999px;padding:8px 16px;font-weight:600;cursor:pointer}
+.del{border:0;background:none;color:var(--warn);padding:8px;cursor:pointer;font-size:15px}
+:focus-visible{outline:3px solid var(--tint);outline-offset:2px;border-radius:8px}
+nav.tabs{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(16px + env(safe-area-inset-bottom,0px));display:flex;gap:4px;padding:4px;border-radius:999px;background:var(--glass);backdrop-filter:blur(20px) saturate(180%);-webkit-backdrop-filter:blur(20px) saturate(180%);border:1px solid var(--glass-b);box-shadow:0 8px 28px rgba(0,0,0,.16);z-index:10}
+nav.tabs button{display:flex;flex-direction:column;align-items:center;gap:1px;min-width:92px;padding:6px 0 5px;border:0;border-radius:999px;background:none;color:var(--sec);font-size:10px;font-weight:600;cursor:pointer}
+nav.tabs button[aria-current="page"]{color:var(--tint);background:var(--fill)}
+nav.tabs svg{width:28px;height:28px}
+.demo{margin:10px 16px 0;font-size:13px;color:var(--sec)}
+@media (prefers-reduced-motion: reduce){*{transition:none!important}}
+.lvl .sub{font-size:15px;color:var(--sec)}
+.odo{display:flex;align-items:center;gap:6px}
+input.num.w{width:110px}
+.corr{display:flex;flex-direction:column;gap:8px;padding:0 16px 12px}
+.pill{border:0;background:var(--tint);color:#fff;border-radius:999px;padding:10px 18px;font-weight:600;cursor:pointer;align-self:flex-start}
+.pill.ghost{background:var(--fill);color:var(--label)}
+.btns{display:flex;gap:10px;padding:4px 16px 14px;flex-wrap:wrap}
+.hist{display:flex;justify-content:space-between;gap:8px;font-size:15px}
+.hist span:first-child{color:var(--sec)}
+.disc{justify-content:space-between;color:var(--label)}
+.act.pause{gap:10px}
+.disc-r{display:flex;align-items:center;gap:8px;color:var(--sec);font-size:15px}
+.chev{transition:transform .2s}
+.disc[aria-expanded="true"] .chev{transform:rotate(90deg)}
+#measBox .row{padding-left:0;padding-right:16px;border-top:1px solid var(--sep)}
+.meas-help{margin:0;padding:8px 16px 14px 0;font-size:13px;line-height:18px;color:var(--sec)}
+.app{padding-top:calc(8px + env(safe-area-inset-top,0px))}
+</style>
+
+<main class="app">
+  <section id="vBat" aria-labelledby="tBat">
+    <h1 id="tBat">Batterie</h1>
+
+    <div class="card">
+      <div class="lvl">
+        <div class="top"><label for="lvl" id="lvlLabel">Le vélo affiche</label><span class="big n" id="lvlVal" aria-live="polite">-</span></div>
+        <input id="lvl" type="range" min="0" max="100" step="1">
+        <div class="sub" id="lvlSub">Lis-le au repos, pas juste après avoir roulé.</div>
+      </div>
+      <div class="btns" id="askBox" hidden><button type="button" class="pill" id="validate">Valider ce niveau</button><button type="button" class="pill ghost" id="skipAsk">Ignorer</button></div>
+    </div>
+
+    <div id="chIdle">
+      <div class="h">Charger</div>
+      <div class="card">
+        <div><div class="seg" role="group" aria-label="Type d'objectif" id="chMode">
+          <button type="button" data-m="pct" aria-pressed="true">Jusqu'à un %</button>
+          <button type="button" data-m="time" aria-pressed="false">Temps disponible</button>
+        </div></div>
+        <div class="lvl" id="pctBox">
+          <div class="top"><label for="tgt">Charger jusqu'à</label><span class="big n" id="tgtVal">-</span></div>
+          <input id="tgt" type="range" min="5" max="100" step="5">
+        </div>
+        <div class="row" id="timeBox" hidden><span>J'ai devant moi</span><span class="v"><span class="n" id="availVal" style="color:var(--label)">-</span>
+          <span class="step"><button type="button" id="avMinus" aria-label="Moins 15 minutes"><svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true"><path d="M1 7h12" stroke-width="2" stroke-linecap="round"></path></svg></button><span></span><button type="button" id="avPlus" aria-label="Plus 15 minutes"><svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true"><path d="M1 7h12M7 1v12" stroke-width="2" stroke-linecap="round"></path></svg></button></span></span></div>
+        <div class="res" aria-live="polite"><div class="big n" id="chDur">-</div><div class="sub n" id="chSub">-</div></div>
+        <div>
+          <button type="button" class="act" id="plug">Je branche maintenant</button>
+          <button type="button" class="act" id="plugEarlierBtn" style="border-top:1px solid var(--sep)">Branchée plus tôt…</button>
+          <div class="earlier" id="earlierBox" hidden><label for="plugTime">Branchée à</label><input id="plugTime" type="time"><button type="button" id="plugEarlier">OK</button></div>
+        </div>
+      </div>
+    </div>
+
+    <div id="chRun" hidden>
+      <div class="h" id="runHdr">En charge</div>
+      <div class="card">
+        <div><div class="res"><div class="big n" id="cd">-</div><div class="sub n" id="cdSub">-</div></div><div class="bar" aria-hidden="true"><div id="barFill"></div></div></div>
+        <button type="button" class="act pause" id="pauseBtn"><svg class="pp" width="18" height="18" viewBox="0 0 18 18" aria-hidden="true"><rect x="4" y="3" width="3.5" height="12" rx="1" fill="currentColor"></rect><rect x="10.5" y="3" width="3.5" height="12" rx="1" fill="currentColor"></rect></svg><span>Mettre en pause</span></button>
+        <button type="button" class="act" id="unplug">J'ai débranché, charge terminée</button>
+        <div>
+          <button type="button" class="act disc" id="measBtn" aria-expanded="false" aria-controls="measBox"><span>Mesurer cette recharge</span><span class="disc-r">Facultatif<svg class="chev" width="14" height="14" viewBox="0 0 14 14" aria-hidden="true"><path d="M5 1.5l5.5 5.5-5.5 5.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg></span></button>
+          <div id="measBox" hidden>
+            <div class="row"><label for="odoPlug">Compteur du vélo</label><span class="odo"><input id="odoPlug" class="num w" type="number" inputmode="decimal" step="0.1"><span class="n" style="color:var(--sec)">km</span></span></div>
+            <div class="row"><label for="shStart">Compteur Shelly</label><span class="odo"><input id="shStart" class="num w" type="number" inputmode="decimal"><span class="n" style="color:var(--sec)">Wh</span></span></div>
+            <p class="meas-help">Les km totaux du vélo et l'énergie totale de l'app Shelly (en kWh, multiplie par 1000), relevés au branchement. À la fin, l'app calcule ta consommation au km. Sans eux, la charge fonctionne pareil.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="chFb" hidden>
+      <div class="h">Relevé de cette recharge</div>
+      <div class="card">
+        <div class="row"><label for="shEnd">Compteur Shelly maintenant</label><span class="odo"><input id="shEnd" class="num w" type="number" inputmode="decimal"><span class="n" style="color:var(--sec)">Wh</span></span></div>
+        <div class="row"><label for="fbMode">Mode surtout utilisé</label><select id="fbMode" class="menu"><option value="1">Mode 1</option><option value="2">Mode 2</option><option value="3">Mode 3</option><option value="4">Mode 4</option><option value="G">Gâchette seule</option><option value="X">Mixte</option></select></div>
+        <div class="row"><label for="fbPax">Passager surtout</label><select id="fbPax" class="menu"></select></div>
+        <div class="res" aria-live="polite"><div class="sub n" id="fbPreview">-</div></div>
+        <div class="btns"><button type="button" class="pill" id="fbSave">Enregistrer</button><button type="button" class="pill ghost" id="fbSkip">Passer</button></div>
+      </div>
+      <div class="f">Relève le compteur Shelly une fois le chargeur débranché.</div>
+    </div>
+
+  </section>
+
+  <section id="vRide" aria-labelledby="tRide" hidden>
+    <h1 id="tRide">Rouler</h1>
+    <div class="f strong" style="padding-top:0">En test : la consommation au km n'est pas encore mesurée sur ton vélo. Les résultats sont des ordres de grandeur, pas des valeurs fiables.</div>
+    <div class="h">Trajet</div>
+    <div class="card">
+      <div class="row"><span>Distance</span><span class="v"><span class="n" id="kmVal" style="color:var(--label)">22 km</span>
+        <span class="step"><button type="button" id="kmMinus" aria-label="Moins 1 km"><svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true"><path d="M1 7h12" stroke-width="2" stroke-linecap="round"></path></svg></button><span></span><button type="button" id="kmPlus" aria-label="Plus 1 km"><svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true"><path d="M1 7h12M7 1v12" stroke-width="2" stroke-linecap="round"></path></svg></button></span></span></div>
+      <div class="row"><label for="pax">Passager</label><select id="pax" class="menu"></select></div>
+      <div class="row"><label for="lights">Feux allumés</label><input id="lights" type="checkbox" class="sw" role="switch"></div>
+      <div class="row"><label for="recharge">Je recharge en arrivant</label><input id="recharge" type="checkbox" class="sw" role="switch" checked></div>
+      <div class="res" id="rideRes" aria-live="polite"><div class="big n" id="rideBig">-</div><div class="sub n" id="rideSub">-</div><div class="adv" id="rideAdv"></div></div>
+    </div>
+    <p class="demo" id="calNote">-</p>
+  </section>
+
+  <section id="vSet" aria-labelledby="tSet" hidden>
+    <h1 id="tSet">Réglages</h1>
+    <div class="h">Personnes</div>
+    <div class="card" id="people"></div>
+    <div class="h">Batterie et charge</div>
+    <div class="card">
+      <div class="row"><label for="sCap">Capacité au mur (Wh)</label><input id="sCap" class="num" type="number" inputmode="numeric"></div>
+
+      <div class="row"><label for="sRes1">Réserve si je recharge (%)</label><input id="sRes1" class="num" type="number" inputmode="numeric"></div>
+      <div class="row"><label for="sRes2">Réserve sinon (%)</label><input id="sRes2" class="num" type="number" inputmode="numeric"></div>
+      <div class="row"><label for="sPrice">Prix du kWh (€)</label><input id="sPrice" class="num" type="number" inputmode="decimal" step="0.01"></div>
+      <div class="row"><label for="sLights">Puissance des feux (W)</label><input id="sLights" class="num" type="number" inputmode="numeric"></div>
+    </div>
+    <div class="f">Tout est compté en énergie prise à la prise, comme le mesure le Shelly : les pertes du chargeur s'annulent. Mesure du 20/09 : 882 Wh de 10 à 100 %, soit 9,8 Wh par point.</div>
+    <div class="h">Consommation seul, Wh/km au mur</div>
+    <div class="card" id="modes"></div>
+    <div class="f" id="modesNote">-</div>
+    <div class="h">Dernières recharges mesurées</div>
+    <div class="card" id="histBox"></div>
+    <div class="h">Contrôle du % affiché</div>
+    <div class="card"><div class="row"><span>Écart moyen vélo / estimation</span><span class="v n" id="gap">Aucun</span></div>
+      <button type="button" class="act" id="reset" style="color:var(--warn)">Tout réinitialiser</button></div>
+  </section>
+</main>
+
+<nav class="tabs" aria-label="Onglets">
+  <button type="button" id="tabBat" aria-current="page"><svg viewBox="0 0 28 28" aria-hidden="true"><rect x="3" y="8" width="19" height="12" rx="3" fill="none" stroke="currentColor" stroke-width="2"></rect><path d="M24.5 12v4" stroke="currentColor" stroke-width="2" stroke-linecap="round"></path><rect x="6" y="11" width="9" height="6" rx="1" fill="currentColor"></rect></svg>Batterie</button>
+  <button type="button" id="tabRide"><svg viewBox="0 0 28 28" aria-hidden="true"><circle cx="7" cy="21" r="2.5" fill="none" stroke="currentColor" stroke-width="2"></circle><circle cx="21" cy="7" r="2.5" fill="none" stroke="currentColor" stroke-width="2"></circle><path d="M9.5 21h7a3.5 3.5 0 0 0 0-7h-5a3.5 3.5 0 0 1 0-7h7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"></path></svg>Rouler</button>
+  <button type="button" id="tabSet"><svg viewBox="0 0 28 28" aria-hidden="true"><circle cx="14" cy="14" r="3.5" fill="none" stroke="currentColor" stroke-width="2"></circle><path d="M14 3v3M14 22v3M3 14h3M22 14h3M6.2 6.2l2.1 2.1M19.7 19.7l2.1 2.1M6.2 21.8l2.1-2.1M19.7 8.3l2.1-2.1" stroke="currentColor" stroke-width="2" stroke-linecap="round"></path></svg>Réglages</button>
+</nav>
+
+<script>
+(function(){
+const $=id=>document.getElementById(id);
+const KEY='charge-rx-v3', OLD='charge-rx-v2';
+const MODES=['1','2','3','4','G'];
+const MNAME={1:'mode 1',2:'mode 2',3:'mode 3',4:'mode 4',G:'gâchette seule',X:'mixte'};
+const DEF={level:64,ask:null,target:80,chMode:'pct',avail:60,km:22,pax:'guest',lights:false,recharge:true,
+  me:75,guest:70,people:[{id:'p1',name:'[Prénom 1]',kg:62}],
+  cap:980,res1:15,res2:30,price:0.20,lightsW:10,
+  modes:{1:11.5,2:15.5,3:19.5,4:25.3,G:28.7},measured:{},
+  charge:null,fb:null,lastEndOdo:null,hist:[],checks:[]};
+let S;
+try{S=JSON.parse(localStorage.getItem(KEY)||'null');}catch(e){S=null;}
+if(!S){ // reprise des réglages de la version précédente
+  S={};
+  try{const o=JSON.parse(localStorage.getItem(OLD)||'{}');['me','guest','people','res1','res2','price','lightsW','modes','measured','hist','checks','km','pax','lights','recharge','target','chMode','avail'].forEach(k=>{if(o[k]!=null)S[k]=o[k];});if(o.cap&&o.cap!==1100)S.cap=o.cap;}catch(e){}
+}
+S=Object.assign({},DEF,S);
+S.modes=Object.assign({},DEF.modes,S.modes||{});
+const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(S));}catch(e){}};
+const num=v=>{const x=parseFloat(String(v).replace(',','.'));return isNaN(x)?null:x;};
+const clamp=(x,a,b)=>Math.min(b,Math.max(a,x));
+const SPREAD=0.12; // incertitude route : vent, vitesse, relief
+
+// ---- modèle de charge, calé sur la charge mesurée le 20/09 (Shelly) ----
+// Départ à 10 % affiché, 882 Wh au mur jusqu'à 100 %. Phase rapide : ~17,7 %/h jusqu'à ~91,3 %.
+// Phase finale : le courant baisse de façon quasi linéaire pendant ~50 min, puis le chargeur coupe.
+const CC_END=91.3, CV_MIN=50, RATE=17.7, K=0.024; // I(t) = 3 - K*50*t/50 -> charge cumulée 3t - K t^2
+const CV_Q=3*CV_MIN-K*CV_MIN*CV_MIN;
+const cvMin=x=>{const f=clamp((x-CC_END)/(100-CC_END),0,1);return (3-Math.sqrt(Math.max(0,9-4*K*CV_Q*f)))/(2*K);};
+function minutesTo(a,b){
+  if(b<=a) return 0;
+  if(b<=CC_END) return (b-a)/RATE*60;
+  const cc=a<CC_END?(CC_END-a)/RATE*60:0;
+  return cc+cvMin(b)-cvMin(Math.max(a,CC_END));
+}
+function levelAfter(a,m){
+  if(a<CC_END){const t=(CC_END-a)/RATE*60; if(m<=t) return a+RATE*m/60; m-=t; a=CC_END;}
+  const m0=Math.min(CV_MIN,cvMin(a)+m); return CC_END+(100-CC_END)*(3*m0-K*m0*m0)/CV_Q;
+}
+const wallWh=(a,b)=>Math.max(0,S.cap*(b-a)/100);
+
+// ---- consommation ----
+const kMass=kg=>1+(kg-75)*0.35/60;
+const paxKg=id=>id==='none'?0:id==='guest'?S.guest:((S.people.find(p=>p.id===id)||{}).kg||0);
+const SPEED=20;
+
+// ---- niveau : saisi par l'utilisateur, estimé en direct pendant la charge ----
+function chargeGoal(lvl){
+  if(S.chMode==='time') return Math.min(100,Math.floor(levelAfter(lvl,S.avail)));
+  return S.target;
+}
+// Temps de charge effectif : pauses déduites.
+function elapsedMs(c){
+  let e=Date.now()-c.start-(c.pausedMs||0);
+  if(c.pausedAt) e-=Date.now()-c.pausedAt;
+  return Math.max(0,e);
+}
+function curLevel(){
+  if(S.charge) return levelAfter(S.charge.from,elapsedMs(S.charge)/60000);
+  return S.level;
+}
+
+// ---- trajet ----
+function ride(level){
+  const pk=paxKg(S.pax), mass=S.me+pk, k=kMass(mass);
+  const light=S.lights&&S.lightsW?S.lightsW/SPEED:0;
+  const c=m=>S.modes[m]*k+light;
+  const avail=S.cap*level/100, resPct=S.recharge?S.res1:S.res2, reserve=S.cap*resPct/100, D=S.km;
+  const range=e=>{const lo=Math.round((avail-e*(1+SPREAD))/S.cap*100),hi=Math.round((avail-e*(1-SPREAD))/S.cap*100);return lo===hi?`≈\u00a0${lo}\u00a0%`:`${Math.max(lo,0)} à\u00a0${hi}\u00a0%`;};
+  const who=pk?`2 personnes · ${mass} kg`:`seul · ${mass} kg`;
+  for(let m=4;m>=1;m--){
+    if(avail-D*c(m)>=reserve){
+      if(m<4){
+        const hi=c(m+1),lo=c(m),x=Math.ceil((D*hi-(avail-reserve))/(hi-lo));
+        if(x>0&&x<D) return {big:`Arrivée ${range(x*lo+(D-x)*hi)}`,sub:`${D} km · ${who}`,adv:`<b>Mode ${m}</b> ${x===1?'le premier km':`les ${x} premiers km`}, puis <b>mode ${m+1}</b>.`};
+      }
+      return {big:`Arrivée ${range(D*c(m))}`,sub:`${D} km · ${who}`,adv:`Tout en <b>mode ${m}</b>.`};
+    }
+  }
+  const e1=D*c(1);
+  if(avail-e1>0) return {bad:true,big:`Arrivée ${range(e1)}`,sub:`${D} km · ${who}`,adv:`Même en <b>mode 1</b>, tu passes sous ta réserve de ${resPct} %. Charge un peu avant.`};
+  return {bad:true,big:'Pas assez',sub:`${D} km · ${who}`,adv:`En <b>mode 1</b>, tu fais environ ${Math.floor(Math.max(0,avail-reserve)/c(1))} km avant ta réserve.`};
+}
+
+// ---- format ----
+const hm=m=>{m=Math.round(m);return `${Math.floor(m/60)} h ${String(m%60).padStart(2,'0')}`;};
+const clock=ms=>new Date(ms).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
+const eur=v=>v.toLocaleString('fr-FR',{minimumFractionDigits:2,maximumFractionDigits:2})+' €';
+const fr=(v,d=1)=>v.toLocaleString('fr-FR',{maximumFractionDigits:d});
+const hms=s=>{s=Math.max(0,Math.round(s));return `${Math.floor(s/3600)}:${String(Math.floor(s%3600/60)).padStart(2,'0')}:${String(s%60).padStart(2,'0')}`;};
+const setRange=(el,v)=>{el.value=v;el.style.setProperty('--p',v+'%');};
+
+// ---- rendu ----
+function fillPax(sel,val){
+  sel.innerHTML='';
+  const add=(v,t)=>{const o=document.createElement('option');o.value=v;o.textContent=t;sel.appendChild(o);};
+  add('none','Personne');S.people.forEach(p=>add(p.id,`${p.name} · ${p.kg} kg`));add('guest',`Invité · ${S.guest} kg`);
+  sel.value=[...sel.options].some(o=>o.value===val)?val:'none';
+  return sel.value;
+}
+function renderBat(){
+  const charging=!!S.charge, asking=S.ask!=null;
+  const lv=Math.round(curLevel());
+  $('lvl').disabled=charging;
+  if(document.activeElement!==$('lvl')) setRange($('lvl'),lv);
+  $('lvlVal').textContent=(charging?'≈ ':'')+lv+' %';
+  $('lvlLabel').textContent=charging?'Estimé en direct':asking?'Le vélo affiche combien ?':'Le vélo affiche';
+  $('lvlVal').style.color=asking?'var(--tint)':'';
+  $('lvlSub').textContent=charging?'Calculé à partir de la charge mesurée le 20/09.':asking?`Estimé à ${S.ask} % à la fin de la charge. Lis le vélo après 5 min de repos, corrige si besoin, puis valide. Sinon, ignore.`:'Lis-le au repos, pas juste après avoir roulé.';
+  $('askBox').hidden=!asking||charging;
+  $('chIdle').hidden=charging||!!S.fb; $('chRun').hidden=!charging; $('chFb').hidden=!S.fb;
+  const lvl=lv;
+  if(!charging&&!S.fb){
+    const timeMode=S.chMode==='time';
+    document.querySelectorAll('#chMode button').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.m===S.chMode)));
+    $('pctBox').hidden=timeMode; $('timeBox').hidden=!timeMode;
+    if(document.activeElement!==$('tgt')) setRange($('tgt'),S.target);
+    $('tgtVal').textContent=S.target+'\u00a0%';
+    $('availVal').textContent=hm(S.avail);
+    const to=chargeGoal(lvl);
+    if(lvl>=100||to<=lvl){$('chDur').textContent='Déjà atteint';$('chSub').textContent=timeMode?'La batterie est déjà pleine.':`Niveau à ${lvl}\u00a0% ou plus.`;$('plug').disabled=true;}
+    else if(timeMode){
+      const full=minutesTo(lvl,100), m=Math.min(S.avail,full);
+      $('plug').disabled=false;
+      $('chDur').textContent=`≈\u00a0${to}\u00a0%`;
+      $('chSub').textContent=(full<=S.avail?`Pleine en ${hm(full)}, avant la fin du créneau`:`De ${lvl} à ${to}\u00a0% en ${hm(m)}, jusqu'à ${clock(Date.now()+m*60000)}`)+` · ≈ ${eur(wallWh(lvl,to)/1000*S.price)}`;
+    }else{
+      const m=minutesTo(lvl,to);
+      $('plug').disabled=false;$('chDur').textContent=hm(m);$('chSub').textContent=`Prête vers ${clock(Date.now()+m*60000)} · ≈ ${eur(wallWh(lvl,to)/1000*S.price)}`;
+    }
+  }
+  if(charging){
+    const c=S.charge,total=minutesTo(c.from,c.to)*60000,el=elapsedMs(c),leftMs=total-el,paused=!!c.pausedAt;
+    $('runHdr').textContent=paused?`En pause, de ${Math.round(c.from)} à ${c.to}\u00a0%`:`En charge de ${Math.round(c.from)} à ${c.to}\u00a0%`;
+    $('cd').textContent=leftMs>0?hms(leftMs/1000):'Terminé';
+    $('cd').style.color=paused?'var(--sec)':'';
+    $('lvlLabel').textContent=paused?'Estimé, charge en pause':'Estimé en direct';
+    if(paused) $('cdSub').textContent=`restantes · en pause depuis ${clock(c.pausedAt)} · prête vers ${clock(Date.now()+leftMs)} si tu reprends maintenant`;
+    else $('cdSub').textContent=leftMs>0?`restantes · prête vers ${clock(Date.now()+leftMs)}`:`objectif atteint vers ${clock(Date.now()+leftMs)}, tu peux débrancher`;
+    $('barFill').style.width=clamp(el/total*100,0,100)+'%';
+    $('pauseBtn').innerHTML=paused?'<svg class="pp" width="18" height="18" viewBox="0 0 18 18" aria-hidden="true"><path d="M5 3.2v11.6c0 .8.9 1.3 1.6.9l9-5.8c.6-.4.6-1.3 0-1.7l-9-5.8C5.9 1.9 5 2.4 5 3.2z" fill="currentColor"></path></svg><span>Reprendre la charge</span>':'<svg class="pp" width="18" height="18" viewBox="0 0 18 18" aria-hidden="true"><rect x="4" y="3" width="3.5" height="12" rx="1" fill="currentColor"></rect><rect x="10.5" y="3" width="3.5" height="12" rx="1" fill="currentColor"></rect></svg><span>Mettre en pause</span>';
+    $('pauseBtn').hidden=leftMs<=0&&!paused;
+    if(document.activeElement!==$('shStart')) $('shStart').value=c.shStart??'';
+    if(document.activeElement!==$('odoPlug')) $('odoPlug').value=c.odo??'';
+    if((c.odo!=null||c.shStart!=null)&&$('measBox').hidden&&!S._measInit){$('measBox').hidden=false;$('measBtn').setAttribute('aria-expanded','true');S._measInit=true;}
+  }
+  if(S.fb) renderFb();
+  $('kmVal').textContent=S.km+' km';$('lights').checked=S.lights;$('recharge').checked=S.recharge;
+  const r=ride(charging?S.charge.to:lvl);
+  $('rideRes').classList.toggle('bad',!!r.bad);
+  $('rideBig').textContent=r.big;$('rideSub').textContent=(charging?`si tu pars à ${S.charge.to} % · `:'')+r.sub;$('rideAdv').innerHTML=r.adv;
+  const n=Object.keys(S.measured).length;
+  $('calNote').textContent='Charge calée sur ta mesure du 20/09. '+(n?`Consommation mesurée pour ${n} mode${n>1?'s':''} sur 5, le reste est théorique.`:'Consommation au km encore théorique : chaque recharge relevée avec le Shelly et le compteur la recale.');
+}
+function fbCalc(){
+  const f=S.fb, end=num($('shEnd').value);
+  if(f.shStart==null||end==null||end<=f.shStart) return null;
+  const wh=end-f.shStart, pts=f.to-f.from;
+  return {wh,km:f.km,whkm:f.km!=null&&f.km>=5?wh/f.km:null,whpt:pts>=5?wh/pts:null};
+}
+function renderFb(){
+  const r=fbCalc(), f=S.fb;
+  if(f.shStart==null){$('fbPreview').textContent='Compteur Shelly du branchement non saisi : rien à mesurer cette fois.';return;}
+  if(!r){$('fbPreview').textContent='Saisis le compteur Shelly actuel.';return;}
+  const parts=[`${fr(r.wh,0)} Wh pour ${f.from} → ${f.to} %`];
+  if(r.whpt) parts.push(`soit ${fr(r.whpt)} Wh par point (référence 9,8)`);
+  parts.push(r.whkm?`et ${fr(r.whkm)} Wh/km sur ${fr(r.km)} km`:f.km==null?'compteur vélo non saisi, pas de Wh/km':'moins de 5 km roulés, pas de Wh/km');
+  $('fbPreview').textContent='Cette recharge : '+parts.join(', ')+'.';
+}
+function renderSet(){
+  const pe=$('people');pe.innerHTML='';
+  const mk=(h,into=pe)=>{const d=document.createElement('div');d.className='row';d.innerHTML=h;into.appendChild(d);return d;};
+  mk(`<label for="pMe">Moi (kg)</label><input id="pMe" class="num" type="number" inputmode="numeric" value="${S.me}">`).querySelector('input').onchange=e=>{S.me=num(e.target.value)||S.me;commit();};
+  S.people.forEach((p,i)=>{
+    const d=mk(`<input id="pn${p.id}" class="txt" type="text" aria-label="Nom du passager ${i+1}"><span class="v"><input id="pk${p.id}" class="num" type="number" inputmode="numeric" aria-label="Poids du passager ${i+1} en kg" value="${p.kg}"><button type="button" class="del" aria-label="Supprimer ce passager">Suppr.</button></span>`);
+    const [n,k]=d.querySelectorAll('input');n.value=p.name;
+    n.onchange=()=>{p.name=n.value.trim()||p.name;commit();};
+    k.onchange=()=>{p.kg=num(k.value)||p.kg;commit();};
+    d.querySelector('.del').onclick=()=>{S.people=S.people.filter(x=>x!==p);commit();renderSet();};
+  });
+  mk(`<label for="pGuest">Invité (kg)</label><input id="pGuest" class="num" type="number" inputmode="numeric" value="${S.guest}">`).querySelector('input').onchange=e=>{S.guest=num(e.target.value)||S.guest;commit();};
+  const b=document.createElement('button');b.type='button';b.className='act';b.textContent='Ajouter un passager';
+  b.onclick=()=>{const id='p'+Date.now();S.people.push({id,name:'Passager',kg:65});commit();renderSet();const el=$('pn'+id);if(el){el.focus();el.select();}};
+  pe.appendChild(b);
+  const f=(id,key)=>{$(id).value=S[key];$(id).onchange=e=>{const v=num(e.target.value);if(v!=null&&v>=0){S[key]=v;commit();}};};
+  f('sCap','cap');f('sRes1','res1');f('sRes2','res2');f('sPrice','price');f('sLights','lightsW');
+  const mo=$('modes');mo.innerHTML='';
+  MODES.forEach(m=>{
+    const meas=S.measured[m];
+    const d=mk(`<label for="m${m}">${m==='G'?'Gâchette seule':'Mode '+m}</label><span class="v"><span style="font-size:13px">${meas?`mesuré ×${meas}`:'théorique'}</span><input id="m${m}" class="num" type="number" inputmode="decimal" step="0.5" value="${fr(S.modes[m])}"></span>`,mo);
+    d.querySelector('input').onchange=e=>{const v=num(e.target.value);if(v>0){S.modes[m]=v;commit();}};
+  });
+  $('modesNote').textContent='Chaque recharge relevée dans un seul mode met à jour sa valeur (moyenne glissante, 30 % de poids pour la plus récente). Les recharges en mode mixte restent dans l\'historique sans modifier les valeurs.';
+  const hb=$('histBox');hb.innerHTML='';
+  if(!S.hist.length) mk('<span style="color:var(--sec)">Aucune pour l\'instant</span>',hb);
+  S.hist.slice(-6).reverse().forEach(h=>{
+    mk(`<span class="n" style="color:var(--sec)">${new Date(h.at).toLocaleDateString('fr-FR',{day:'numeric',month:'short'})}</span><span class="n">${fr(h.wh,0)} Wh${h.whpt?` · ${fr(h.whpt)} Wh/pt`:''}${h.whkm?` · ${fr(h.km)} km · ${fr(h.whkm)} Wh/km · ${MNAME[h.mode]}`:''}${h.pax&&h.pax!=='none'&&h.whkm?' · duo':''}</span>`,hb);
+  });
+  if(S.checks.length){const g=S.checks.reduce((a,x)=>a+(x.velo-x.est),0)/S.checks.length;$('gap').textContent=`${g>0?'+':''}${fr(g)} pt sur ${S.checks.length}`;}else $('gap').textContent='Aucun';
+}
+function commit(){save();fillPax($('pax'),S.pax);renderBat();}
+
+// ---- événements ----
+$('lvl').oninput=e=>{S.level=+e.target.value;e.target.style.setProperty('--p',S.level+'%');$('lvlVal').textContent=S.level+' %';save();};
+$('lvl').onchange=()=>{commit();};
+$('validate').onclick=()=>{S.checks.push({est:S.ask,velo:S.level,at:Date.now()});S.ask=null;commit();};
+$('skipAsk').onclick=()=>{S.ask=null;commit();}; // garde le niveau affiché, sans enregistrer d'écart
+document.querySelectorAll('#chMode button').forEach(b=>b.onclick=()=>{S.chMode=b.dataset.m;commit();});
+$('tgt').oninput=e=>{S.target=Math.max(5,+e.target.value);e.target.style.setProperty('--p',S.target+'%');$('tgtVal').textContent=S.target+'\u00a0%';save();renderBat();};
+$('avMinus').onclick=()=>{S.avail=Math.max(15,S.avail-15);commit();};
+$('avPlus').onclick=()=>{S.avail=Math.min(600,S.avail+15);commit();};
+function startCharge(ms){
+  const from=Math.round(S.level);
+  $('measBox').hidden=true;$('measBtn').setAttribute('aria-expanded','false');S._measInit=false;
+  S.charge={from,to:chargeGoal(from),start:ms,odo:null,shStart:null};S.ask=null;commit();
+}
+$('plug').onclick=()=>startCharge(Date.now());
+$('plugEarlierBtn').onclick=()=>{const b=$('earlierBox');b.hidden=!b.hidden;if(!b.hidden){$('plugTime').value=new Date(Date.now()-30*60000).toTimeString().slice(0,5);$('plugTime').focus();}};
+$('plugEarlier').onclick=()=>{
+  const [h,m]=($('plugTime').value||'').split(':').map(Number);if(isNaN(h))return;
+  const d=new Date();d.setHours(h,m,0,0);if(d>Date.now())d.setDate(d.getDate()-1);
+  $('earlierBox').hidden=true;startCharge(d.getTime());
+};
+$('shStart').onchange=e=>{if(S.charge){S.charge.shStart=num(e.target.value);save();}};
+$('pauseBtn').onclick=()=>{
+  const c=S.charge; if(!c) return;
+  if(c.pausedAt){c.pausedMs=(c.pausedMs||0)+(Date.now()-c.pausedAt);c.pausedAt=null;}
+  else c.pausedAt=Date.now();
+  commit();
+};
+$('measBtn').onclick=()=>{const open=$('measBox').hidden;$('measBox').hidden=!open;$('measBtn').setAttribute('aria-expanded',String(open));if(open)$('odoPlug').focus();};
+$('odoPlug').onchange=e=>{if(S.charge){S.charge.odo=num(e.target.value);save();}};
+$('unplug').onclick=()=>{
+  const c=S.charge, lv=Math.round(Math.min(c.to,curLevel()));
+  const km=c.odo!=null&&S.lastEndOdo!=null?Math.max(0,c.odo-S.lastEndOdo):null;
+  S.fb=c.shStart!=null?{shStart:c.shStart,km,from:c.from,to:lv}:null;
+  if(c.odo!=null) S.lastEndOdo=c.odo;
+  S.charge=null;S.level=lv;S.ask=lv;
+  $('shEnd').value='';$('fbMode').value='2';fillPax($('fbPax'),'none');commit();
+  if(c.shStart!=null) $('shEnd').focus();
+};
+$('shEnd').oninput=renderFb;
+$('fbSave').onclick=()=>{
+  const r=fbCalc(), mode=$('fbMode').value, pax=$('fbPax').value;
+  if(r){
+    S.hist.push({at:Date.now(),km:r.km,wh:r.wh,whkm:r.whkm,whpt:r.whpt,mode,pax});
+    if(r.whkm&&MODES.includes(mode)){
+      const solo=r.whkm/kMass(S.me+paxKg(pax));
+      const n=S.measured[mode]||0;
+      S.modes[mode]=n?S.modes[mode]*0.7+solo*0.3:solo;
+      S.measured[mode]=n+1;
+    }
+  }
+  S.fb=null;commit();
+};
+$('fbSkip').onclick=()=>{S.fb=null;commit();};
+$('kmMinus').onclick=()=>{S.km=Math.max(1,S.km-1);commit();};
+$('kmPlus').onclick=()=>{S.km=Math.min(200,S.km+1);commit();};
+$('pax').onchange=e=>{S.pax=e.target.value;commit();};
+$('lights').onchange=e=>{S.lights=e.target.checked;commit();};
+$('recharge').onchange=e=>{S.recharge=e.target.checked;commit();};
+$('reset').onclick=()=>{S=JSON.parse(JSON.stringify(DEF));commit();renderSet();};
+function tab(which){
+  const views={bat:['vBat','tabBat'],ride:['vRide','tabRide'],set:['vSet','tabSet']};
+  Object.entries(views).forEach(([k,[v,t]])=>{$(v).hidden=k!==which;if(k===which)$(t).setAttribute('aria-current','page');else $(t).removeAttribute('aria-current');});
+  if(which==='set') renderSet();
+  window.scrollTo(0,0);
+}
+$('tabBat').onclick=()=>tab('bat');$('tabRide').onclick=()=>tab('ride');$('tabSet').onclick=()=>tab('set');
+
+fillPax($('pax'),S.pax);renderBat();
+setInterval(()=>{if(S.charge) renderBat();},1000);
+setInterval(()=>{if(!S.charge&&!S.fb) renderBat();},30000);
+})();
+</script>
+
+
+</body>
+</html>
